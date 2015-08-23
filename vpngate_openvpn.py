@@ -2,6 +2,8 @@
 import base64
 import subprocess
 import urllib
+import json
+import csv
 
 class vpngate:
 
@@ -29,9 +31,6 @@ class vpngate:
 				sys.stderr.write('No usable mirror\n')
 				sys.exit(-1)
 
-
-
-
 		self.dir_temp = './temp/'
 		if not os.path.isdir(self.dir_temp): os.makedirs(self.dir_temp)
 
@@ -43,9 +42,19 @@ class vpngate:
 		self.servers=[];self.servers_ip=[];self.read_servers()
 		return
 	def read_servers(self):
-		pass
+		#todo
+		try:
+			file = open('./servers.db','r')
+			doc = file.read()
+		except:
+			pass
+		return
 	def write_servers(self):
-		pass
+
+		file = open('./servers.db','w')
+		file.write(json.dumps(self.servers,indent=3))
+		file.close()
+		return
 	def update_CSV(self, url=''):
 		if url == '' :url = self.url
 		url += 'api/iphone/'
@@ -69,12 +78,11 @@ class vpngate:
 
 		servers=[];servers_ip=[]
 		for List_f in List:
-			List_f.split(',')
+			List_f=List_f.split(',')
 			server={}
-			for i in range(0,15):
-				server[self.keylist[i]]=List_f[i]
-				servers.append(server)
-				servers_ip.append(server['IP'])
+			for i in range(0,15):server[self.keylist[i]]=List_f[i]
+			servers.append(server)
+			servers_ip.append(server['IP'])
 
 		if len(self.servers_ip)==0:
 			self.servers=servers;self.servers_ip=servers_ip
@@ -89,19 +97,20 @@ class vpngate:
 		file.close()
 		self.write_servers()
 		return
-	def write_server(self,Server):
-		file = open(self.dir_temp+'{0}_{1}.ovpn'.format(Server['IP'], Server['CountryShort']), 'w')
+	def write_server(self,server):
+		file = open(self.dir_temp+'{0}_{1}.ovpn'.format(server['IP'], server['CountryShort']), 'w')
 		if file:
-			data = base64.b64decode(Server['OpenVPN_ConfigData_Base64'])
+			data = base64.b64decode(server['OpenVPN_ConfigData_Base64'])
 			data = str(data).replace(r'\'', '\'').replace(r'\r', '\r').replace(r'\n', '\n')[2:-1]
 			file.write(data)
 		return
-	def generate_files(self):
-		for server in self.servers:
-			file = open('./temp/{0}_{1}.ovpn'.format(server['IP'], server['CountryShort']), 'w')
-			if file:
-				self.write_servers(server)
+	def update_servers_useful(self):
+		uip = []
 
+		for ip_ in self.servers_ip:
+			if ping_ip(ip_):uip.append(ip_);print(ip_)
+
+		return uip
 def ping_ip(ip='127.0.0.1'):
 	response = subprocess.getoutput('ping ' + ip);  # print( type(response))
 	response = response.strip()
@@ -160,9 +169,11 @@ def main():
 	ping_website()
 	v = vpngate()
 	v.update_CSV()
-	v.servers_ip
+	v.update_servers()
+	v.write_servers()
+	print( json.dumps( v.update_servers_useful(),indent=3) )
 	return
 
 if __name__ == '__main__':
-	sys.path.append(r'C:\Python34\Lib')
+	print( sys.path)
 	main()
